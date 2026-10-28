@@ -1,27 +1,39 @@
-/* Goldbach: elegxos protwn kai anazitisi anaparastasis. Pigi: dokimi me diairesi mexri sqrt(n). */
+/*
+ * goldbach.c - Η Εικασία του Goldbach
+ *
+ * Διαβάζει επαναλαμβανόμενα έναν ακέραιο n (0 <= n <= 10^10) και μια επιλογή:
+ *   p - ελέγχει αν ο n είναι πρώτος
+ *   g - βρίσκει n = p + q (p, q πρώτοι, p <= q) με τον μικρότερο δυνατό p
+ *
+ */
 #include <stdio.h>
 
+/* Μέγιστο n. Το LL το κάνει long long: το 10^10 δεν χωράει σε int. */
 #define MAXN 10000000000LL
 
+/* 1 αν ο c είναι κενός χαρακτήρας (κενό, νέα γραμμή, tab). */
 int is_space(int c)
 {
     return c == ' ' || c == '\n' || c == '\t' || c == '\r';
 }
 
+/* 1 αν ο n είναι πρώτος, αλλιώς 0. Δοκιμάζουμε διαιρέτες μέχρι sqrt(n):
+ * αν ο n έχει διαιρέτη > sqrt(n), έχει και έναν μικρότερο. */
 int is_prime(long long n)
 {
     long long i;
 
-    if (n < 2)
+    if (n < 2)              /* το 0 και το 1 δεν είναι πρώτοι */
         return 0;
-    if (n % 2 == 0)
+    if (n % 2 == 0)         /* από τους άρτιους μόνο το 2 είναι πρώτος */
         return n == 2;
+    /* μόνο περιττοί διαιρέτες. Το i * i <= n είναι ίδιο με i <= sqrt(n) */
     for (i = 3; i * i <= n; i += 2)
         if (n % i == 0)
             return 0;
     return 1;
 }
-
+/* Εκτελεί την επιλογή (letter = 'p' ή 'g') για τον αριθμό n. */
 void run(char letter, long long n)
 {
     long long p;
@@ -34,11 +46,15 @@ void run(char letter, long long n)
         return;
     }
 
-    /* letter == 'g' */
+    /* letter == 'g': η εικασία αφορά άρτιους μεγαλύτερους του 2 */
     if (n <= 2 || n % 2 != 0) {
         printf("Goldbach's conjecture is applicable only to even numbers greater than 2!\n");
         return;
     }
+
+    /* Δοκιμάζουμε p = 2, 3, 4, ... με αύξουσα σειρά. Το πρώτο p με p και
+     * n - p πρώτους είναι ο μικρότερος δυνατός, άρα η απάντηση είναι
+     * μοναδική και p <= q. Σταματάμε στο n / 2. */
     for (p = 2; p <= n / 2; p++) {
         if (is_prime(p) && is_prime(n - p)) {
             printf("%lld = %lld + %lld\n", n, p, n - p);
@@ -49,14 +65,16 @@ void run(char letter, long long n)
 
 int main(void)
 {
-    int c, neg, digits, len, i;
-    char ch1, ch2;
-    long long n;
+    int c;                  /* τρέχων χαρακτήρας (int, για το EOF) */
+    int neg, digits;        /* αρνητικός; πόσα ψηφία διαβάστηκαν */
+    int len;                /* πόσοι χαρακτήρες έχει η επιλογή */
+    char ch;                /* ο χαρακτήρας επιλογής */
+    long long n;            /* ο αριθμός που διαβάζουμε */
 
-    for (;;) {
+    for (;;) {              /* μέχρι EOF ή λάθος */
         printf("Give me a number: ");
 
-        /* diavasma arithmou */
+        /* --- Ανάγνωση αριθμού: προσπερνάμε πρώτα τα κενά --- */
         c = getchar();
         while (c != EOF && is_space(c))
             c = getchar();
@@ -65,13 +83,15 @@ int main(void)
             return 0;
         }
 
-        neg = 0;
+        neg = 0;            /* προαιρετικό πρόσημο */
         if (c == '-' || c == '+') {
             if (c == '-')
                 neg = 1;
             c = getchar();
         }
 
+        /* Χτίζουμε τον αριθμό ψηφίο-ψηφίο: n * 10 + (c - '0'). Μόλις
+         * ξεπεράσει το όριο, σταματάμε να τον αλλάζουμε (όχι υπερχείλιση). */
         n = 0;
         digits = 0;
         while (c >= '0' && c <= '9') {
@@ -81,18 +101,18 @@ int main(void)
             c = getchar();
         }
 
+        /* Λάθος: κανένα ψηφίο ("banana") ή κάτι μετά τον αριθμό ("12abc") */
         if (digits == 0 || (c != EOF && !is_space(c))) {
             fprintf(stderr, "Invalid input: expected an integer\n");
             return 1;
         }
+        /* Λάθος: αρνητικός (εκτός από το -0) ή πολύ μεγάλος */
         if ((neg && n > 0) || n > MAXN) {
             fprintf(stderr, "Number should be in the range [0, 10000000000]\n");
             return 1;
         }
-
         printf("Choose how to test %lld - ('p' for prime, 'g' for goldbach) ", n);
-
-        /* diavasma epilogis (p, g i kai ta dyo p.x. pg) */
+        /* --- Ανάγνωση επιλογής: προσπερνάμε πρώτα τα κενά --- */
         while (c != EOF && is_space(c))
             c = getchar();
         if (c == EOF) {
@@ -100,31 +120,22 @@ int main(void)
             return 0;
         }
 
+        /* Διαβάζουμε όλη τη λέξη μέχρι το επόμενο κενό: κρατάμε τον πρώτο
+         * χαρακτήρα και μετράμε πόσοι ήταν συνολικά. */
         len = 0;
-        ch1 = 0;
-        ch2 = 0;
+        ch = 0;
         while (c != EOF && !is_space(c)) {
             if (len == 0)
-                ch1 = c;
-            else if (len == 1)
-                ch2 = c;
+                ch = c;
             len++;
             c = getchar();
         }
-
-        if (!(ch1 == 'p' || ch1 == 'g') ||
-            len > 2 ||
-            (len == 2 && !(ch2 == 'p' || ch2 == 'g'))) {
+        /* Έγκυρη επιλογή: ακριβώς ένας χαρακτήρας, p ή g. Αλλιώς λάθος
+         * (π.χ. "x" ή "pg"). */
+        if (len != 1 || (ch != 'p' && ch != 'g')) {
             fprintf(stderr, "Invalid choice: expected 'p' or 'g'\n");
             return 1;
         }
-
-        for (i = 0; i < len; i++) {
-            if (i == 0)
-                run(ch1, n);
-            else
-                run(ch2, n);
-        }
+        run(ch, n);
     }
 }
-
